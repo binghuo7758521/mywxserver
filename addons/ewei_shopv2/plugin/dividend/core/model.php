@@ -17,9 +17,12 @@ if( !class_exists("DividendModel") )
 		public function getSet($uniacid = 0) 
 		{
 			$set = m("common")->getPluginset("dividend");
+			
 			$set["texts"] = array( "agent" => (empty($set["texts"]["agent"]) ? "队长" : $set["texts"]["agent"]), "center" => (empty($set["texts"]["center"]) ? "分红中心" : $set["texts"]["center"]), "become" => (empty($set["texts"]["become"]) ? "成为队长" : $set["texts"]["become"]), "withdraw" => (empty($set["texts"]["withdraw"]) ? "提现" : $set["texts"]["withdraw"]), "dividend" => (empty($set["texts"]["dividend"]) ? "分红" : $set["texts"]["dividend"]), "dividend1" => (empty($set["texts"]["dividend1"]) ? "团队分红" : $set["texts"]["dividend1"]), "dividend_total" => (empty($set["texts"]["dividend_total"]) ? "累计分红" : $set["texts"]["dividend_total"]), "dividend_ok" => (empty($set["texts"]["dividend_ok"]) ? "可提现分红" : $set["texts"]["dividend_ok"]), "dividend_apply" => (empty($set["texts"]["dividend_apply"]) ? "已申请分红" : $set["texts"]["dividend_apply"]), "dividend_check" => (empty($set["texts"]["dividend_check"]) ? "待打款分红" : $set["texts"]["dividend_check"]), "dividend_lock" => (empty($set["texts"]["dividend_lock"]) ? "未结算分红" : $set["texts"]["dividend_lock"]), "dividend_detail" => (empty($set["texts"]["dividend_detail"]) ? "提现明细" : ($set["texts"]["dividend_detail"] == "分红明细" ? "提现明细" : $set["texts"]["dividend_detail"])), "dividend_pay" => (empty($set["texts"]["dividend_pay"]) ? "成功提现分红" : $set["texts"]["dividend_pay"]), "dividend_wait" => (empty($set["texts"]["dividend_wait"]) ? "待收货分红" : $set["texts"]["dividend_wait"]), "dividend_fail" => (empty($set["texts"]["dividend_fail"]) ? "无效分红" : $set["texts"]["dividend_fail"]), "dividend_charge" => (empty($set["texts"]["dividend_charge"]) ? "扣除提现手续费" : $set["texts"]["dividend_charge"]), "order" => (empty($set["texts"]["order"]) ? "团队订单" : $set["texts"]["order"]), "yuan" => (empty($set["texts"]["yuan"]) ? "元" : $set["texts"]["yuan"]) );
+			
 			return $set;
 		}
+		// 亿佰start
 		public function getInfo($openid, $options = NULL) 
 		{
 			global $_W;
@@ -35,11 +38,30 @@ if( !class_exists("DividendModel") )
 				$where_time = " and o.createtime between " . $options["starttime"] . " and " . $options["endtime"];
 			}
 			$set = $this->getSet();
+
+            // 获取当前用户的信息
 			$member = m("member")->getInfo($openid);
+
 			$time = time();
+			// 后台设置时间应该是： 为了后期判断失效？
 			$day_times = intval($set["settledays"]) * 3600 * 24;
-			$groupscount = 0;
+			// 获取当前会员的直接下线数量
 			$groupscounts = pdo_fetch("select count(id) as counts from " . tablename("ewei_shop_member") . " where headsid = :headsid and uniacid = :uniacid", array( ":headsid" => $member["id"], ":uniacid" => $_W["uniacid"] ));
+
+			// 查询当前会员的直接下线的 id 以及 等级
+			$groupsMembers = pdo_fetchAll("select id,agentheads from " . tablename("ewei_shop_member") . " where headsid = :headsid and uniacid = :uniacid", array( ":headsid" => $member["id"], ":uniacid" => $_W["uniacid"] ));
+					foreach($groupsMembers as $groupsMember){
+			// 遍历所有二级队长
+						if($groupsMember['agentheads']==2){   //下线为二级队长
+								$groupscounts2 = pdo_fetch("select count(id) as counts from " . tablename("ewei_shop_member") . " where headsid = :headsid and uniacid = :uniacid", array( ":headsid" => $groupsMember["id"], ":uniacid" => $_W["uniacid"] ));
+								//二级会员的下线数量
+								$groupscounts3 = intval($groupscounts2['counts']);
+								$groupscounts['counts'] += $groupscounts3;
+							}
+				}
+			//$groupscounts = pdo_fetch("select count(id) as counts from " . tablename("ewei_shop_member") . " where headsid = :headsid and uniacid = :uniacid", array( ":headsid" => $member["id"], ":uniacid" => $_W["uniacid"] ));
+
+			//当前用户所有团员数量
 			$groupscount = $groupscounts["counts"];
 			$ordercount0 = 0;
 			$ordermoney0 = 0;
@@ -55,21 +77,89 @@ if( !class_exists("DividendModel") )
 			$dividend_lock = 0;
 			$dividend_wait = 0;
 			$dividend_fail = 0;
-			if( in_array("total", $options) ) 
-			{
-				$order_all = pdo_fetchall("select id,headsid,price,deductcredit2,dispatchprice,dividend from " . tablename("ewei_shop_order") . " where 1 and headsid = :headsid and status >= 0 and uniacid = :uniacid", array( ":headsid" => $member["id"], ":uniacid" => $_W["uniacid"] ));
-				if( !empty($order_all) ) 
-				{
-					foreach( $order_all as $k => $v ) 
-					{
-						$divedend = iunserializer($v["dividend"]);
-						$dividend_total += $divedend["dividend_price"];
+// 亿佰start 累计分红
+					if (in_array("total", $options)) {
+						date_default_timezone_set("Asia/Shanghai");
+            $beginThismonth=mktime(0,0,0,date('m'),1,date('Y'));
+		$dividend_total = pdo_fetchColumn("select sum(dividend_money) from " . tablename("ewei_shop_dividendok"). " where member_id = :member_id and dividend_month<$beginThismonth",array(":member_id" => $member["id"]));		
+           if($dividend_total ==""){
+			   $dividend_total = 0;
+			   }
+}						
+					/*	date_default_timezone_set("Asia/Shanghai");
+            $beginThismonth=mktime(0,0,0,date('m'),1,date('Y'));*/
+				// 查询数据
+				/*if ($member['agentheads'] == 2) {
+					$order_all = pdo_fetchall("select openid,id,headsid,price,deductcredit2,dispatchprice,dividend from " . tablename("ewei_shop_order") . " where 1 and headsid = :headsid and status >= 0 and (createtime >" . $member["headstime"] . ") and (createtime <" . $beginThismonth . ") and uniacid = :uniacid", array(":headsid" => $member["id"], ":uniacid" => $_W["uniacid"]));
+					
+					
+					if (!empty($order_all)) {
+						foreach ($order_all as $k => $v) {
+							$divedend = iunserializer($v["dividend"]);
+				// 累计分红数
+							$dividend_total += $divedend["dividend_price"];
+						}
 					}
+				//print_r($dividend_total);die;
+					//echo  '二级队长分红：'.$dividend_total;
+					// 如果为
 				}
-			}
+					if ($member['agentheads'] == 1) {
+							// 如果是一级队长，遍历二级队长信息
+								//获取所有成员的信息 
+								$order_all = pdo_fetchall("select openid,id,headsid,price,deductcredit2,dispatchprice,dividend from " . tablename("ewei_shop_order") . " where 1 and headsid = :headsid and status >= 0 and (createtime <" . $beginThismonth . ") and uniacid = :uniacid", array(":headsid" => $member["id"], ":uniacid" => $_W["uniacid"]));
+								
+								
+								
+					if (!empty($order_all)) {
+						foreach ($order_all as $k => $v) {
+							$divedend = iunserializer($v["dividend"]);
+				// 累计分红数
+							$dividend_total += $divedend["dividend_price"];
+						}
+					}
+					
+				//print_r($dividend_total);die;
+					//echo  '二级队长分红：'.$dividend_total;
+								$groupscounts2 = pdo_fetchAll("select id,agentheads,headstime from " . tablename("ewei_shop_member") . " where headsid = :headsid and uniacid = :uniacid", array(":headsid" => $member["id"], ":uniacid" => $_W["uniacid"]));
+							
+                            	 //二级队长分红统计
+								$dividend_total1=0; 
+								foreach($groupscounts2 as $result){
+								//该一级队长下二级队长下线的订单分红统计
+								if ($result['agentheads'] == 2) {
+									$order_all1 = pdo_fetchall("select openid,id,headsid,price,deductcredit2,dispatchprice,dividend from " . tablename("ewei_shop_order") . " where 1 and headsid = :headsid and status >= 0 and  (createtime >" . $result["headstime"] . ") and (createtime <" . $beginThismonth . ") and  uniacid = :uniacid", array(":headsid" => $result["id"], ":uniacid" => $_W["uniacid"]));
+									
+									if (!empty($order_all1)) {
+										foreach ($order_all1 as $k => $v) {
+											$divedend = iunserializer($v["dividend"]);
+											// 累计分红数
+											$dividend_total1 += $divedend["dividend_price"];
+										}
+									}
+									
+									//echo '二级队长下线分红'.$dividend_total1;
+
+								}
+							}
+
+                        $dividend_total+=$dividend_total1;
+							// 判断二级队长是否的订单
+						 //print_r($dividend_total);die;
+							// 遍历查询
+						}*/
+				
+		
+// 亿佰 累计分红 end
+
+
+
+            /*************************** 可提现分红 start **********************/
 			if( in_array("ok", $options) ) 
 			{
-				$divedend_order_ok = pdo_fetchall("select id,headsid,price,deductcredit2,dispatchprice,dividend,finishtime from " . tablename("ewei_shop_order") . " where 1 and headsid = :headsid and status >= 3 and dividend_status=0 and (" . $time . "-finishtime > " . $day_times . ") and uniacid = :uniacid", array( ":headsid" => $member["id"], ":uniacid" => $_W["uniacid"] ));
+             /* if ($member['agentheads'] == 2 &&$member['isheads'] == 1&&$member['headsstatus'] == 1) {
+				$divedend_order_ok = pdo_fetchall("select openid,id,headsid,price,deductcredit2,dispatchprice,dividend,finishtime from " . tablename("ewei_shop_order") . " where 1 and headsid = :headsid and status >= 3 and dividend2_status=0 and (" . $time . "-finishtime > " . $day_times . ") and (finishtime >" . $member["headstime"] . ") and uniacid = :uniacid", array( ":headsid" => $member["id"], ":uniacid" => $_W["uniacid"] ));
+              
 				if( !empty($divedend_order_ok) ) 
 				{
 					foreach( $divedend_order_ok as $k => $v ) 
@@ -78,7 +168,68 @@ if( !class_exists("DividendModel") )
 						$dividend_ok += $dividend["dividend_price"];
 					}
 				}
+			  }
+			//  80
+
+				if ($member['agentheads'] == 1) {
+					$divedend_order_ok = pdo_fetchall("select openid,id,headsid,price,deductcredit2,dispatchprice,dividend,finishtime from " . tablename("ewei_shop_order") . " where 1 and headsid = :headsid and status >= 3 and dividend_status=0 and (" . $time . "-finishtime > " . $day_times . ") and uniacid = :uniacid", array( ":headsid" => $member["id"], ":uniacid" => $_W["uniacid"] ));
+              
+				if( !empty($divedend_order_ok) ) 
+				{
+					foreach( $divedend_order_ok as $k => $v ) 
+					{
+						$dividend = iunserializer($v["dividend"]);
+						$dividend_ok += $dividend["dividend_price"];
+					}
+				}
+							// 遍历二级队长
+								//获取所有成员的信息 /
+								$groupscounts2 = pdo_fetchAll("select id,agentheads,headstime from " . tablename("ewei_shop_member") . " where headsid = :headsid and uniacid = :uniacid", array(":headsid" => $member["id"], ":uniacid" => $_W["uniacid"]));
+								
+							foreach($groupscounts2 as $result){
+								if ($result['agentheads'] == 2) {
+									
+									$order_all1 = pdo_fetchall("select openid,id,headsid,price,deductcredit2,dispatchprice,dividend,finishtime from " . tablename("ewei_shop_order") . " where 1 and headsid = :headsid and status >= 3 and dividend_status=0 and (" . $time . "-finishtime > " . $day_times . ") and (finishtime >" . $result["headstime"] . ")  and uniacid = :uniacid", array( ":headsid" => $result["id"], ":uniacid" => $_W["uniacid"] ));
+									
+                                    $dividend_total1 = 0;
+									if (!empty($order_all1)) {
+
+										
+										foreach ($order_all1 as $k => $v) {
+											$divedend = iunserializer($v["dividend"]);
+											// 可提现分红数
+											$dividend_total1 += $divedend["dividend_price"];
+											//  80
+										}
+									
+									}
+								}
+							}
+							// 判断二级队长是否的订单
+                    //print_r($dividend_total1);die;
+							$dividend_ok += $dividend_total1;
+							
+							// 遍历查询
+						}
+				*/
+			date_default_timezone_set("Asia/Shanghai");
+            $beginThismonth=mktime(0,0,0,date('m'),1,date('Y'));
+			//$dividend = pdo_fetchAll("select * from " . tablename("ewei_shop_dividendok") ."where member_id =".$member["id"]);
+				// 条件准备
+		$dividend_ok = pdo_fetchColumn("select sum(dividend_money) from " . tablename("ewei_shop_dividendok"). " where member_id = :member_id and dividend_status = 0 and dividend_month<$beginThismonth",array(":member_id" => $member["id"]));
+			
+			/* ."where member_id =".$member["id"]*/
 			}
+
+			/*************************** 可提现分红 end **********************/
+           if($dividend_ok ==""){
+			   $dividend_ok = 0;
+			   }
+
+
+
+
+			// 待打款的
 			if( in_array("check", $options) ) 
 			{
 				$check_apply = pdo_fetchall("select id,orderids,dividend from " . tablename("ewei_shop_dividend_apply") . " where mid = :mid and status = 2 and uniacid = :uniacid", array( ":mid" => $member["id"], ":uniacid" => $_W["uniacid"] ));
@@ -89,7 +240,9 @@ if( !class_exists("DividendModel") )
 						$dividend_check += $v["dividend"];
 					}
 				}
+
 			}
+			// 已申请的
 			if( in_array("check", $options) ) 
 			{
 				$check_apply = pdo_fetchall("select id,orderids,dividend from " . tablename("ewei_shop_dividend_apply") . " where mid = :mid and status = 1 and uniacid = :uniacid", array( ":mid" => $member["id"], ":uniacid" => $_W["uniacid"] ));
@@ -101,9 +254,12 @@ if( !class_exists("DividendModel") )
 					}
 				}
 			}
+			// 成功提现分红
 			if( in_array("pay", $options) ) 
 			{
 				$check_apply_pay = pdo_fetchall("select id,orderids,dividend from " . tablename("ewei_shop_dividend_apply") . " where mid = :mid and status = 3 and uniacid = :uniacid", array( ":mid" => $member["id"], ":uniacid" => $_W["uniacid"] ));
+				
+		
 				if( !empty($check_apply_pay) ) 
 				{
 					foreach( $check_apply_pay as $k => $v ) 
@@ -112,6 +268,9 @@ if( !class_exists("DividendModel") )
 					}
 				}
 			}
+			
+			
+			// 未结算分红
 			if( in_array("lock", $options) ) 
 			{
 				$check_apply_lock = pdo_fetchall("select id,headsid,price,deductcredit2,dispatchprice,dividend,finishtime from " . tablename("ewei_shop_order") . " where 1 and headsid = :headsid and status >= 3 and dividend_status=0 and (" . $time . "-finishtime <= " . $day_times . ") and uniacid = :uniacid", array( ":headsid" => $member["id"], ":uniacid" => $_W["uniacid"] ));
@@ -124,6 +283,7 @@ if( !class_exists("DividendModel") )
 					}
 				}
 			}
+			// 待收货分红
 			if( in_array("wait", $options) ) 
 			{
 				$divedend_order_wait = pdo_fetchall("select id,headsid,price,deductcredit2,dispatchprice,dividend,finishtime from " . tablename("ewei_shop_order") . " where 1 and headsid = :headsid and status = 2 and (" . $time . "-finishtime > " . $day_times . ") and uniacid = :uniacid", array( ":headsid" => $member["id"], ":uniacid" => $_W["uniacid"] ));
@@ -136,6 +296,7 @@ if( !class_exists("DividendModel") )
 					}
 				}
 			}
+			// 失效的分红
 			if( in_array("fail", $options) ) 
 			{
 				$check_apply_fail = pdo_fetchall("select id,orderids,dividend from " . tablename("ewei_shop_dividend_apply") . " where mid = :mid and status = -1 and uniacid = :uniacid", array( ":mid" => $member["id"], ":uniacid" => $_W["uniacid"] ));
@@ -149,13 +310,16 @@ if( !class_exists("DividendModel") )
 			}
 			if( in_array("ordercount0", $options) ) 
 			{
+				// 获取直接下线的订单总金额，总数量，
 				$order0 = pdo_fetch("select sum(price) as ordermoney,count(distinct id) as ordercount from " . tablename("ewei_shop_order") . " where headsid = :headsid and status >=0 and uniacid = :uniacid", array( ":headsid" => $member["id"], ":uniacid" => $_W["uniacid"] ));
+				//print_r($order0);die;
 				if( !empty($order0) ) 
 				{
 					$ordercount0 += $order0["ordercount"];
 					$ordermoney0 += $order0["ordermoney"];
 				}
 			}
+		
 			if( in_array("ordercount", $options) ) 
 			{
 				$order = pdo_fetch("select sum(price) as ordermoney,count(distinct id) as ordercount from " . tablename("ewei_shop_order") . " where headsid = :headsid and status >=1 and uniacid = :uniacid", array( ":headsid" => $member["id"], ":uniacid" => $_W["uniacid"] ));
@@ -174,6 +338,9 @@ if( !class_exists("DividendModel") )
 					$ordermoney3 += $order3["ordermoney"];
 				}
 			}
+		
+			
+	
 			$member["groupscount"] = $groupscount;
 			$member["ordercount0"] = $ordercount0;
 			$member["ordermoney0"] = $ordermoney0;
@@ -192,6 +359,7 @@ if( !class_exists("DividendModel") )
 			$this->getInfo = $member;
 			return $this->getInfo;
 		}
+		// 亿佰end
 		public function getHeadsDownNum($openid = NULL) 
 		{
 			global $_W;
@@ -215,17 +383,24 @@ if( !class_exists("DividendModel") )
 			$member = m("member")->getMember($openid);
 			return $member["isheads"] == 1 && $member["headsstatus"] == 1;
 		}
+		// 亿佰start
 		public function checkOrderConfirm($orderid = "0") 
 		{
+			
+			// 在创建订单时触发
 			global $_W;
 			global $_GPC;
 			if( empty($orderid) ) 
 			{
+				
 				return NULL;
 			}
 			$set = $this->getSet();
+			
+			//print_r($set);die;
 			if( empty($set["open"]) ) 
 			{
+				
 				return NULL;
 			}
 			$order = pdo_fetch("select id,openid,ordersn,goodsprice,agentid,paytime,officcode,dispatchprice,deductcredit2,price,deductcredit2 from " . tablename("ewei_shop_order") . " where id=:id and status>=0 and uniacid=:uniacid limit 1", array( ":id" => $orderid, ":uniacid" => $_W["uniacid"] ));
@@ -235,23 +410,52 @@ if( !class_exists("DividendModel") )
 			}
 			$openid = $order["openid"];
 			$member = m("member")->getMember($openid);
+			
 			if( empty($member) ) 
 			{
 				return NULL;
 			}
-			if( empty($member["headsid"]) ) 
+			/*if( empty($member["headsid"]) ) 
 			{
+				// 如果没上级就终止分红
+				return NULL;
+			}*/
+			if( !empty($member["isheads"]) && !empty($member["headsstatus"]) && ($member["agentheads"]==1)) 
+			{	
+		
+			// 如果是队长切审核通过的情况下。而且队长为一级队长时终止
 				return NULL;
 			}
-			if( !empty($member["isheads"]) && !empty($member["headsstatus"]) ) 
-			{
-				return NULL;
-			}
-			$divedend["dividend_price"] = number_format(((($order["price"] + $order["deductcredit2"]) - $order["dispatchprice"]) * $set["ratio"]) / 100, 2);
-			$divedend["dividend_ratio"] = $set["ratio"];
+			
+			// 亿佰start
+			$price = $order["price"] + $order["deductcredit2"] - $order["dispatchprice"];
+			
+			if($set['startmoney1'] <= $price and $price<= $set['endmoney1']){
+				$divedend["dividend_price"] = number_format(((($order["price"] + $order["deductcredit2"]) - $order["dispatchprice"]) * $set["ratio1"]) / 100, 2);
+				$divedend["dividend_ratio"] = $set["ratio1"];
+				}
+				if($set['startmoney2'] < $price and $price<= $set['endmoney2']){
+				$divedend["dividend_price"] = number_format(((($order["price"] + $order["deductcredit2"]) - $order["dispatchprice"]) * $set["ratio2"]) / 100, 2);
+				$divedend["dividend_ratio"] = $set["ratio2"];
+				}
+				if($set['startmoney3'] < $price and $price<= $set['endmoney3']){
+				$divedend["dividend_price"] = number_format(((($order["price"] + $order["deductcredit2"]) - $order["dispatchprice"]) * $set["ratio3"]) / 100, 2);
+				$divedend["dividend_ratio"] = $set["ratio3"];
+				}
+				if($set['startmoney4'] < $price and $price<= $set['endmoney4']){
+				$divedend["dividend_price"] = number_format(((($order["price"] + $order["deductcredit2"]) - $order["dispatchprice"]) * $set["ratio4"]) / 100, 2);
+				$divedend["dividend_ratio"] = $set["ratio4"];
+				}
+				// 亿佰end
+				
+				//原有
+			//$divedend["dividend_price"] = number_format(((($order["price"] + $order["deductcredit2"]) - $order["dispatchprice"]) * $set["ratio"]) / 100, 2);
+			//$divedend["dividend_ratio"] = $set["ratio"];
 			pdo_update("ewei_shop_order", array( "headsid" => $member["headsid"], "dividend" => iserializer($divedend) ), array( "id" => $orderid ));
+
 			return true;
 		}
+		// 亿佰end
 		public function checkOrderPay($orderid = "0") 
 		{
 			global $_W;

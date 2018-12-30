@@ -110,11 +110,14 @@ class Apply_EweiShopV2Page extends DividendWebPage
 			}
 		}
 		$sql = "select a.*, m.nickname,m.avatar,m.realname,m.mobile,m.agentlevel,a.realname as applyrealname,a.sendmoney from " . tablename("ewei_shop_dividend_apply") . " a " . " left join " . tablename("ewei_shop_member") . " m on m.id = a.mid" . " where 1 " . $condition . " ORDER BY " . $orderby . " desc ";
+		
+		
 		if( empty($_GPC["export"]) ) 
 		{
 			$sql .= "  limit " . ($pindex - 1) * $psize . "," . $psize;
 		}
 		$list = pdo_fetchall($sql, $params);
+		
 		if( $status == 3 ) 
 		{
 			$realmoney_total = (double) pdo_fetchcolumn("select sum(a.realmoney) from " . tablename("ewei_shop_dividend_apply") . " a " . " left join " . tablename("ewei_shop_member") . " m on m.id = a.mid" . " where 1 " . $condition, $params);
@@ -172,6 +175,8 @@ class Apply_EweiShopV2Page extends DividendWebPage
 					continue;
 				}
 				$orders = pdo_fetchall("select id,agentid, ordersn,price,goodsprice,dispatchprice,createtime,paytype,dividend,dividend_status from " . tablename("ewei_shop_order") . " where  id in ( " . $row["orderids"] . " );");
+				
+				//print_r($orders);die;
 				$totaldividend = 0;
 				$totalpay = 0;
 				$passmoney = 0;
@@ -343,6 +348,7 @@ class Apply_EweiShopV2Page extends DividendWebPage
 		global $_GPC;
 		$id = intval($_GPC["id"]);
 		$apply = pdo_fetch("select * from " . tablename("ewei_shop_dividend_apply") . " where uniacid=:uniacid and id=:id limit 1", array( ":uniacid" => $_W["uniacid"], ":id" => $id ));
+		//print_r($apply);die;
 		if( empty($apply) ) 
 		{
 			if( $_W["isajax"] ) 
@@ -369,12 +375,22 @@ class Apply_EweiShopV2Page extends DividendWebPage
 		{
 			$this->message("无任何订单，无法查看!", "", "error");
 		}
-		$list = pdo_fetchall("select id,headsid, ordersn,price,goodsprice, dispatchprice,discountprice,deductprice,deductcredit2,deductenough,couponprice,createtime, paytype,dividend,dividend_status,dividend_content from " . tablename("ewei_shop_order") . " where  id in ( " . $apply["orderids"] . " );");
+		$list = pdo_fetchall("select id,headsid, ordersn,price,goodsprice, dispatchprice,discountprice,deductprice,deductcredit2,deductenough,couponprice,createtime, paytype,dividend,dividend_status,dividend_content,dividend2_status,dividend2_content from " . tablename("ewei_shop_order") . " where  id in ( " . $apply["orderids"] . " );");
+		//print_r($list);die;
 		$totaldividend = 0;
 		$totalmoney = 0;
 		$totalpay = 0;
 		foreach( $list as &$row ) 
 		{
+			/*$order_userid = pdo_fetch("select openid from " . tablename("ewei_shop_order") . " where 1 and id = :id and uniacid = :uniacid", array(":id" => $row["id"], ":uniacid" => $_W["uniacid"]));
+				$groupscounts = pdo_fetch("select headsid from " . tablename("ewei_shop_member") . " where openid = :openid and uniacid = :uniacid", array(":openid" => $order_userid["openid"], ":uniacid" => $_W["uniacid"]));
+				if($groupscounts['headsid']!=$member['id']){
+					$row['is_er'] = 1;
+				
+					}*/
+					if($member['agentheads']!=1){
+						$row['is_er'] = 1;
+					}
 			$goods = pdo_fetchall("SELECT og.id,g.thumb,og.price,og.realprice, og.total,g.title,o.paytype,og.optionname from " . tablename("ewei_shop_order_goods") . " og" . " left join " . tablename("ewei_shop_goods") . " g on g.id=og.goodsid  " . " left join " . tablename("ewei_shop_order") . " o on o.id=og.orderid  " . " where og.uniacid = :uniacid and og.orderid=:orderid order by og.createtime  desc ", array( ":uniacid" => $_W["uniacid"], ":orderid" => $row["id"] ));
 			$dividend = iunserializer($row["dividend"]);
 			if( !empty($dividend) ) 
@@ -407,6 +423,8 @@ class Apply_EweiShopV2Page extends DividendWebPage
 			}
 		}
 		$apply_type = array( "余额", "微信钱包", "支付宝", "银行卡" );
+		
+		
 		return array( "id" => $id, "status" => $status, "apply" => $apply, "list" => $list, "totalcount" => $totalcount, "totalmoney" => $totalmoney, "member" => $member, "totalpay" => $totalpay, "totaldividend" => $totaldividend, "realmoney" => $realmoney, "deductionmoney" => $deductionmoney, "charge" => $set_array["charge"], "set_array" => $set_array, "apply_type" => $apply_type );
 	}
 	public function detail() 
@@ -417,16 +435,24 @@ class Apply_EweiShopV2Page extends DividendWebPage
 		extract($applyData);
 		include($this->template());
 	}
+	
+	
+	
+	
+	
 	public function check() 
 	{
 		global $_W;
 		global $_GPC;
 		$applyData = $this->applyData();
+		$agentheads = $applyData['member']['agentheads'];
 		extract($applyData);
 		if( $apply["status"] != 1 ) 
 		{
 			show_json(0, "此申请无法审核!");
 		}
+		
+		
 		$paydividend = 0;
 		if( !is_array($list) ) 
 		{
@@ -434,8 +460,10 @@ class Apply_EweiShopV2Page extends DividendWebPage
 		}
 		$time = time();
 		$isAllUncheck = true;
+
 		foreach( $list as $order ) 
 		{
+			
 			$update = array( );
 			if( isset($_GPC["status"][$order["id"]]) ) 
 			{
@@ -450,7 +478,15 @@ class Apply_EweiShopV2Page extends DividendWebPage
 					$paydividend += $dividend_price;
 					$isAllUncheck = false;
 				}
+
+
+				if($agentheads==1){
+					
 				$update = array( "dividend_checktime" => $time, "dividend_status" => intval($_GPC["status"][$order["id"]]), "dividend_content" => $_GPC["content"][$order["id"]] );
+					}else{
+			
+					$update = array( "dividend2_checktime" => $time, "dividend2_status" => intval($_GPC["status"][$order["id"]]), "dividend2_content" => $_GPC["content"][$order["id"]] );
+				}
 			}
 			if( !empty($update) ) 
 			{
@@ -490,6 +526,7 @@ class Apply_EweiShopV2Page extends DividendWebPage
 		global $_W;
 		global $_GPC;
 		$applyData = $this->applyData();
+		$agentheads = $applyData['member']['agentheads'];
 		extract($applyData);
 		if( $apply["status"] != 2 && $apply["status"] != -1 ) 
 		{
@@ -497,7 +534,14 @@ class Apply_EweiShopV2Page extends DividendWebPage
 		}
 		foreach( $list as $row ) 
 		{
-			pdo_update("ewei_shop_order", array( "dividend_checktime" => 0, "dividend_status" => 1 ), array( "id" => $row["id"] ));
+				if($agentheads==1){
+					
+				pdo_update("ewei_shop_order", array( "dividend_checktime" => 0, "dividend_status" => 1 ), array( "id" => $row["id"] ));
+					}else{
+			
+					pdo_update("ewei_shop_order", array( "dividend2_checktime" => 0, "dividend2_status" => 1 ), array( "id" => $row["id"] ));
+				}
+			
 		}
 		pdo_update("ewei_shop_dividend_apply", array( "status" => 1, "checktime" => 0, "invalidtime" => 0 ), array( "id" => $id, "uniacid" => $_W["uniacid"] ));
 		plog("dividend.apply.cancel", "重新审核申请 ID: " . $id . " 申请编号: " . $apply["applyno"] . " ");
@@ -508,14 +552,24 @@ class Apply_EweiShopV2Page extends DividendWebPage
 		global $_W;
 		global $_GPC;
 		$applyData = $this->applyData();
+		$agentheads = $applyData['member']['agentheads'];
 		extract($applyData);
 		if( $apply["status"] != 1 ) 
 		{
 			show_json(0, "此申请无法拒绝!");
 		}
+	
 		foreach( $list as $row ) 
 		{
-			pdo_update("ewei_shop_order", array( "dividend_checktime" => 0, "dividend_status" => 0 ), array( "id" => $row["id"] ));
+
+				if($agentheads==1){
+						pdo_update("ewei_shop_order", array( "dividend_checktime" => 0, "dividend_status" => 0 ), array( "id" => $row["id"] ));
+					}else{
+				
+					pdo_update("ewei_shop_order", array( "dividend2_checktime" => 0, "dividend2_status" => 0 ), array( "id" => $row["id"] ));
+				}
+			
+			
 		}
 		pdo_update("ewei_shop_dividend_apply", array( "status" => -2, "checktime" => 0, "invalidtime" => 0, "invalidtime" => time() ), array( "id" => $id, "uniacid" => $_W["uniacid"] ));
 		plog("dividend.apply.refuse", "驳回申请 ID: " . $id . " 申请编号: " . $apply["applyno"] . " ");
@@ -526,6 +580,7 @@ class Apply_EweiShopV2Page extends DividendWebPage
 		global $_W;
 		global $_GPC;
 		$applyData = $this->applyData();
+		$agentheads = $applyData['member']['agentheads'];
 		extract($applyData);
 		$set = $this->getSet();
 		if( $apply["status"] != 2 ) 
@@ -613,7 +668,15 @@ class Apply_EweiShopV2Page extends DividendWebPage
 		{
 			if( $row["dividend_status"] == 2 ) 
 			{
-				pdo_update("ewei_shop_order", array( "dividend_paytime" => $time, "dividend_status" => 3 ), array( "id" => $row["id"] ));
+
+			if($agentheads==1){
+						pdo_update("ewei_shop_order", array( "dividend_paytime" => 0, "dividend_status" => 3 ), array( "id" => $row["id"] ));
+					}else{
+				
+					pdo_update("ewei_shop_order", array( "dividend2_paytime" => 0, "dividend2_status" => 3 ), array( "id" => $row["id"] ));
+				}
+				
+				
 			}
 		}
 		pdo_update("ewei_shop_dividend_apply", array( "status" => 3, "paytime" => $time, "dividend_pay" => $totalpay, "realmoney" => $realmoney, "deductionmoney" => $deductionmoney ), array( "id" => $id, "uniacid" => $_W["uniacid"] ));
@@ -632,6 +695,7 @@ class Apply_EweiShopV2Page extends DividendWebPage
 		global $_W;
 		global $_GPC;
 		$applyData = $this->applyData();
+		$agentheads = $applyData['member']['agentheads'];
 		extract($applyData);
 		$set = $this->getSet();
 		if( $apply["status"] != 2 ) 
@@ -643,7 +707,18 @@ class Apply_EweiShopV2Page extends DividendWebPage
 		{
 			if( $row["dividend_status"] == 2 ) 
 			{
-				pdo_update("ewei_shop_order", array( "dividend_paytime" => $time, "dividend_status" => 3 ), array( "id" => $row["id"] ));
+	
+				if($agentheads==1){
+					
+			pdo_update("ewei_shop_order", array( "dividend_paytime" => $time, "dividend_status" => 3 ), array( "id" => $row["id"] ));
+					}else{
+			
+					pdo_update("ewei_shop_order", array( "dividend2_paytime" => $time, "dividend2_status" => 3 ), array( "id" => $row["id"] ));
+				}
+			
+				
+				
+				
 			}
 		}
 		pdo_update("ewei_shop_dividend_apply", array( "status" => 3, "paytime" => $time, "dividend_pay" => $totalpay, "realmoney" => $realmoney, "deductionmoney" => $deductionmoney ), array( "id" => $id, "uniacid" => $_W["uniacid"] ));

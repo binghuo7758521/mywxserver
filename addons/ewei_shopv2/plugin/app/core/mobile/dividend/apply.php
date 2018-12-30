@@ -7,22 +7,81 @@ class Apply_EweiShopV2Page extends Base_EweiShopV2Page
 {
 	public function main() 
 	{
+
+
 		global $_W;
 		global $_GPC;
 		$openid = $_W["openid"];
 		$member = $this->model->getInfo($openid, array( ));
+
 		$time = time();
 		$day_times = intval($this->set["settledays"]) * 3600 * 24;
 		$dividend_ok = 0;
-		$orders = pdo_fetchall("select id,dividend from " . tablename("ewei_shop_order") . " where headsid=:headsid and status>=3  and dividend_status=0 and (" . $time . " - finishtime > " . $day_times . ") and uniacid=:uniacid  group by id", array( ":uniacid" => $_W["uniacid"], ":headsid" => $member["id"] ));
-		foreach( $orders as $o ) 
+		// 2018.12.25注释
+	/*	if($member['agentheads']==2){
+			$orders = pdo_fetchall("select id,dividend from " . tablename("ewei_shop_order") . " where headsid=:headsid and status>=3  and dividend2_status=0 and (" . $time . " - finishtime > " . $day_times . ") and (finishtime >" . $member["headstime"] . ") and uniacid=:uniacid  group by id", array( ":uniacid" => $_W["uniacid"], ":headsid" => $member["id"] ));
+			}else{
+				$orders = pdo_fetchall("select id,dividend from " . tablename("ewei_shop_order") . " where headsid=:headsid and status>=3  and dividend_status=0 and (" . $time . " - finishtime > " . $day_times . ") and (finishtime >" . $member["headstime"] . ") and uniacid=:uniacid  group by id", array( ":uniacid" => $_W["uniacid"], ":headsid" => $member["id"] ));
+				}
+				
+		/*foreach( $orders as $o )
 		{
 			$dividend = iunserializer($o["dividend"]);
 			if( !empty($dividend) ) 
 			{
 				$dividend_ok += (isset($dividend["dividend_price"]) ? floatval($dividend["dividend_price"]) : 0);
 			}
-		}
+		}*/
+		//print_r($dividend_ok);die;
+		// 2018.12.25注释end
+		// 二级分红80
+		// 遍历订单。这个地方有问题。遍历出订单。然后求出分红总金额。
+		/*	if ($member['agentheads'] == 1) {
+							// 遍历二级队长
+								//获取所有成员的信息 /
+								$groupscounts2 = pdo_fetchAll("select id,agentheads,headstime from " . tablename("ewei_shop_member") . " where headsid = :headsid and uniacid = :uniacid", array(":headsid" => $member["id"], ":uniacid" => $_W["uniacid"]));
+									
+
+
+								foreach($groupscounts2 as $result){
+
+								if ($result['agentheads'] == 2) {
+									$orders1 = pdo_fetchall("select id,dividend from " . tablename("ewei_shop_order") . " where headsid=:headsid and status>=3 and dividend_status=0 and (" . $time . " - finishtime > " . $day_times . ") and (finishtime >" . $result["headstime"] . ")  and uniacid=:uniacid  ", array( ":uniacid" => $_W["uniacid"], ":headsid" => $result["id"] ));
+								}
+								}*/
+									// 2018.12.25注释
+                                  /*<!--  $dividend_total1 = 0;
+									if (!empty($orders1)) {
+										foreach ($orders1 as $k => $v) {
+											$divedend = iunserializer($v["dividend"]);
+											// 可提现分红数
+											$dividend_total1 += $divedend["dividend_price"];
+										}
+									}-->*/
+
+									/*$dividend_ok+=$dividend_total1;*/
+									
+								// 2018.12.25注释end
+						/*		}
+							}*/
+							// 判断二级队长是否的订单
+
+							// 遍历查询
+/*<!--						}
+
+if(!empty($orders1)){
+    $orders = array_merge($orders,$orders1);
+
+}-->*/
+
+			date_default_timezone_set("Asia/Shanghai");
+            $beginThismonth=mktime(0,0,0,date('m'),1,date('Y'));
+            $orders = pdo_fetchAll("select * from " . tablename("ewei_shop_dividendok"). " where member_id = :member_id and dividend_status = 0 and dividend_month<$beginThismonth",array(":member_id" => $member["id"]));
+			$dividend_ok = pdo_fetchColumn("select sum(dividend_money) from " . tablename("ewei_shop_dividendok"). " where member_id = :member_id and dividend_status = 0 and dividend_month<$beginThismonth",array(":member_id" => $member["id"]));
+			
+				
+				
+			
 		$withdraw = floatval($this->set["withdraw"]);
 		if( $withdraw <= 0 ) 
 		{
@@ -95,6 +154,8 @@ class Apply_EweiShopV2Page extends Base_EweiShopV2Page
 		}
 		if( $_W["ispost"] ) 
 		{
+
+
 			unset($_SESSION["dividend_apply_token"]);
 			if( $dividend_ok <= 0 || empty($orders) ) 
 			{
@@ -134,6 +195,7 @@ class Apply_EweiShopV2Page extends Base_EweiShopV2Page
 			{
 				if( $type == 3 ) 
 				{
+
 					$realname = trim($_GPC["realname"]);
 					$bankname = trim($_GPC["bankname"]);
 					$bankcard = trim($_GPC["bankcard"]);
@@ -163,12 +225,28 @@ class Apply_EweiShopV2Page extends Base_EweiShopV2Page
 					$apply["bankcard"] = $bankcard;
 				}
 			}
+		
 			$orderids = array( );
+			
+			
 			foreach( $orders as $o ) 
 			{
-				$orderids[] = $o["id"];
-				pdo_update("ewei_shop_order", array( "dividend_status" => 1, "dividend_applytime" => $time ), array( "id" => $o["id"], "uniacid" => $_W["uniacid"] ));
+			
+				$orderids[] = $o["order_ids"];
+				if($member['agentheads']==1){
+					
+					//pdo_update("ewei_shop_order", array( "dividend_status" => 1, "dividend_applytime" => $time ), array( "id" => $o["order_ids"], "uniacid" => $_W["uniacid"] ));
+					
+					pdo_query('UPDATE '.tablename('ewei_shop_order')." SET dividend_status = 1,dividend_applytime = $time WHERE id in ({$o['order_ids']})");
+					pdo_query('UPDATE '.tablename('ewei_shop_dividendok')." SET dividend_status = 1 WHERE member_id = {$member["id"]} and dividend_month < {$beginThismonth}");
+					
+					}else{
+						pdo_query('UPDATE '.tablename('ewei_shop_order')." SET dividend2_status = 1,dividend2_applytime = $time WHERE id in ({$o['order_ids']})");
+				//pdo_update("ewei_shop_order", array( "dividend2_status" => 1, "dividend2_applytime" => $time ), array( "id" => $o["order_ids"], "uniacid" => $_W["uniacid"] ));
+			pdo_query('UPDATE '.tablename('ewei_shop_dividendok')." SET dividend_status = 1 WHERE member_id = {$member["id"]} and dividend_month < {$beginThismonth}");
+					}
 			}
+			
 			$applyno = m("common")->createNO("dividend_apply", "applyno", "DA");
 			$apply["uniacid"] = $_W["uniacid"];
 			$apply["applyno"] = $applyno;

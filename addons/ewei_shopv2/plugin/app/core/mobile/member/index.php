@@ -7,6 +7,8 @@ class Index_EweiShopV2Page extends AppMobilePage
 {
 	public function main() 
 	{
+		
+		
 		global $_W;
 		global $_GPC;
 		$member = $this->member;
@@ -198,6 +200,8 @@ class Index_EweiShopV2Page extends AppMobilePage
 		$result["hasdividend"] = $hasdividend;
 		$result["isheads"] = $member["isheads"];
 		$result["headsstatus"] = $member["headsstatus"];
+		$result["agentheads"] = $member["agentheads"];
+		//print_r($member);die;
 		app_json($result);
 	}
 }

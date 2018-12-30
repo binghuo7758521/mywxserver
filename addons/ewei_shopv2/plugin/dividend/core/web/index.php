@@ -7,6 +7,8 @@ class Index_EweiShopV2Page extends DividendWebPage
 {
 	public function main() 
 	{
+		
+		
 		global $_W;
 		if( cv("dividend.agent") ) 
 		{
@@ -160,29 +162,54 @@ class Index_EweiShopV2Page extends DividendWebPage
 		$template_list = $template_group;
 		include($this->template());
 	}
+	/*亿佰start*/
 	public function set() 
 	{
 		global $_W;
 		global $_GPC;
+		
+
 		if( $_W["ispost"] ) 
 		{
+			
 			$data = (is_array($_GPC["data"]) ? $_GPC["data"] : array( ));
 			$data["open"] = intval($data["open"]);
-			$data["ratio"] = round(floatval(trim($data["ratio"], "%")), 2);
+			$data["ratio1"] = round(floatval(trim($data["ratio1"], "%")), 2);
+			$data["ratio2"] = round(floatval(trim($data["ratio2"], "%")), 2);
+			$data["ratio3"] = round(floatval(trim($data["ratio3"], "%")), 2);
 			$data["cashcredit"] = intval($data["cashcredit"]);
 			$data["cashweixin"] = intval($data["cashweixin"]);
 			$data["cashother"] = intval($data["cashother"]);
 			$data["cashalipay"] = intval($data["cashalipay"]);
 			$data["cashcard"] = intval($data["cashcard"]);
 			$data["texts"] = (is_array($_GPC["texts"]) ? $_GPC["texts"] : array( ));
-			if( empty($data["ratio"]) ) 
+			if( empty($data["ratio1"]) ) 
 			{
-				$data["ratio"] = "0";
+				$data["ratio1"] = "0";
 			}
-			if( $data["ratio"] < 0 || 100 < $data["ratio"] ) 
+			if( $data["ratio1"] < 0 || 100 < $data["ratio1"] ) 
 			{
 				show_json(0, "请填写0-100之间的数值,只保留两位小数");
 			}
+			if( empty($data["ratio2"]) ) 
+			{
+				$data["ratio2"] = "0";
+			}
+			if( $data["ratio2"] < 0 || 100 < $data["ratio2"] ) 
+			{
+				show_json(0, "请填写0-100之间的数值,只保留两位小数");
+			}
+			if( empty($data["ratio3"]) ) 
+			{
+				$data["ratio3"] = "0";
+			}
+			if( $data["ratio3"] < 0 || 100 < $data["ratio3"] ) 
+			{
+				show_json(0, "请填写0-100之间的数值,只保留两位小数");
+			}
+			
+			
+			
 			$data["condition"] = intval($data["condition"]);
 			switch( $data["condition"] ) 
 			{
@@ -227,6 +254,8 @@ class Index_EweiShopV2Page extends DividendWebPage
 			$data["open_protocol"] = floatval(trim($data["open_protocols"]));
 			$data["applycontent"] = m("common")->html_images($data["applycontent"]);
 			$data["register_bottom_content"] = m("common")->html_images($data["register_bottom_content"]);
+			//print_r($data);die;
+			
 			m("common")->updatePluginset(array( "dividend" => $data ));
 			m("cache")->set("template_" . $this->pluginname, $data["style"]);
 			plog("dividend.set.edit", "修改基本设置<br>成为队长条件 -- " . $become);
@@ -234,8 +263,10 @@ class Index_EweiShopV2Page extends DividendWebPage
 		}
 		$data = m("common")->getPluginset("dividend");
 		$data["open_protocols"] = $data["open_protocol"];
+		//print_r($data);
 		include($this->template());
 	}
+	/*亿佰end*/
 	public function refresh() 
 	{
 		$data = m("common")->getPluginset("dividend");

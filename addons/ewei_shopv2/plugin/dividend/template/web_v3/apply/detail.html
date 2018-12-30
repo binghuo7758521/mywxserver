@@ -222,10 +222,25 @@
 
 
                             <div class='input-group'>
-                                <span class='input-group-addon'>分红</span>
+                              <!--/*  <span class='input-group-addon'>分红</span>
                                 <span class='input-group-addon' style='width:80px;'>{$row['dividend_price']}</span>
-
+*/-->
                                                 <span class='input-group-addon'>
+                                               {if $row['is_er']==1}
+                                                  {if $row['dividend2_status']==-1}
+                                                    <span class='label label-default'>未通过</span>
+                                                    {elseif $row['dividend2_status']==1}
+
+                                                    <label class='radio-inline' style='margin-top:-7px;'><input type='radio'  class='status' value='-1'  name="status[{$row['id']}]" /> 不通过</label>
+                                                    <label class='radio-inline'  style='margin-top:-7px;'><input type='radio'  value='2'   name="status[{$row['id']}]"  /> 通过</label>
+
+
+                                                    {elseif $row['dividend2_status']==2}
+                                                    <span class='text-success'>通过</span>
+                                                    {elseif $row['dividend2_status']==3}
+                                                    <span class='text-warning'>已打款</span>
+                                                    {/if}
+                                               {else}
                                                     {if $row['dividend_status']==-1}
                                                     <span class='label label-default'>未通过</span>
                                                     {elseif $row['dividend_status']==1}
@@ -239,6 +254,7 @@
                                                     {elseif $row['dividend_status']==3}
                                                     <span class='text-warning'>已打款</span>
                                                     {/if}
+                                               {/if}
                                                 </span>
                                 <span class='input-group-addon'>备注</span>
                                 <input type='text' class='form-control' name='content[{$row['id']}]' style='width:150px;' value="{$row['dividend_content']}"/>

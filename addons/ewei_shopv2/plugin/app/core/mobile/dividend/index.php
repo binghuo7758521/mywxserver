@@ -199,11 +199,71 @@ class Index_EweiShopV2Page extends Base_EweiShopV2Page
 	}
 	public function main() 
 	{
-		global $_GPC;
-		global $_W;
-		$member = $this->model->getInfo($_W["openid"], array( "total", "ordercount0", "ok", "ordercount", "wait", "pay" ));
+		
+	
+			global $_GPC;
+			global $_W;
+			date_default_timezone_set("Asia/Shanghai");
+            $beginThismonth=mktime(0,0,0,date('m'),1,date('Y'));
+            $endThismonth=mktime(23,59,59,date('m'),date('t'),date('Y'));
+
+		$member = $this->model->getInfo($_W["openid"], array( "total", "ordercount0", "ok", "ordercount", "wait", "pay"));
+	// 亿佰start
+	if ($member['agentheads'] == 2) {//如果为二级，则统计出本月的的销售额
+					$membemoney = pdo_fetch("select sum(price) as countprice from " . tablename("ewei_shop_order") . " where 1 and headsid = :headsid and status >= 3 and (".$endThismonth." > finishtime and finishtime>".$beginThismonth.") and uniacid = :uniacid", array(":headsid" => $member["id"], ":uniacid" => $_W["uniacid"]));
+						
+									$member["countprice"] = $membemoney['countprice'];
+									
+				}
+				
+				
+				
+					if ($member['agentheads'] == 1) {//如果为一级，则统计出本月的的销售额
+								$membemoney = pdo_fetch("select sum(price) as countprice from " . tablename("ewei_shop_order") . " where 1 and headsid = :headsid and status >= 3 and (".$endThismonth." > finishtime and finishtime>".$beginThismonth.") and uniacid = :uniacid", array(":headsid" => $member["id"], ":uniacid" => $_W["uniacid"]));
+								
+									$member["countprice"] = $membemoney['countprice'];
+									
+								// 查询一级下线为二级的ID，
+								$groupscounts2 = pdo_fetchAll("select id,agentheads from " . tablename("ewei_shop_member") . " where headsid = :headsid and uniacid = :uniacid", array(":headsid" => $member["id"], ":uniacid" => $_W["uniacid"]));
+								foreach($groupscounts2 as $result){
+								//该一级队长下二级队长下线的订单分红统计
+								
+								$member["countprice1"] = 0;
+								if ($result['agentheads'] == 2) {
+									
+									$member1 = pdo_fetchall("select sum(price) as countprice from " . tablename("ewei_shop_order") . " where 1 and headsid = :headsid and status >= 3 and (".$endThismonth." > finishtime and finishtime>".$beginThismonth.") and uniacid = :uniacid", array(":headsid" => $result["id"], ":uniacid" => $_W["uniacid"]));
+									
+									
+										foreach($member1 as $res){
+										$member["countprice1"] += $res['countprice'];
+										
+										
+									}
+									
+								}
+							}
+
+						if(!empty($member["countprice1"])){
+							$member["countprice"]+=$member["countprice1"];
+							}
+                        
+							// 判断二级队长是否的订单
+						 //print_r($dividend_total);die;
+							// 遍历查询
+						}
+						
+						
+				if($member["countprice"] == ""){
+					$member["countprice"]=0;
+					}
+		
+	// end
+		
 		$member["applycount"] = pdo_fetchcolumn("select count(id) from " . tablename("ewei_shop_dividend_apply") . " where mid=:mid and uniacid=:uniacid limit 1", array( ":uniacid" => $_W["uniacid"], ":mid" => $member["id"] ));
+
+		// 队长表
 		$initData = pdo_fetch("select * from " . tablename("ewei_shop_dividend_init") . " where headsid = :headsid and uniacid = :uniacid", array( ":headsid" => $member["id"], ":uniacid" => $_W["uniacid"] ));
+		//print_r($initData);die;
 		$isbuild = $initData["status"];
 		$member["applycount"] = pdo_fetchcolumn("select count(id) from " . tablename("ewei_shop_dividend_apply") . " where mid=:mid and uniacid=:uniacid limit 1", array( ":uniacid" => $_W["uniacid"], ":mid" => $member["id"] ));
 		$result = array( "member" => $member, "isbuild" => $isbuild, "set" => array( "texts" => $this->set["texts"] ) );
@@ -214,11 +274,15 @@ class Index_EweiShopV2Page extends Base_EweiShopV2Page
 		global $_W;
 		global $_GPC;
 		$member = m("member")->getMember($_W["openid"]);
+		// 根据当前用户 openid查询当前用户所有信息
 		if( empty($member["isheads"]) || empty($member["headsstatus"]) ) 
 		{
 			app_error(1, "您还不是团长");
 		}
 		$data = pdo_fetchall("select id from " . tablename("ewei_shop_commission_relation") . " where pid = :pid", array( ":pid" => $member["id"] ));
+		// 查询表 ewei_shop_commission_relation 中pid 对应当前用户的ID。 查询
+		// 如果不为空，则遍历出所有
+		// 遍历所有自己分销商的下线，成为其自己的团员。
 		if( !empty($data) ) 
 		{
 			$ids = array( );
