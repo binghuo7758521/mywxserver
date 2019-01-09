@@ -2850,7 +2850,23 @@ class Create_EweiShopV2Page extends AppMobilePage
 		}
 		else 
 		{
-			$ordersn = m("common")->createNO("order", "ordersn", "SH");
+          	//$ordersn = m("common")->createNO("order", "ordersn", "SH");
+			$nowtime =date("Y-m-d h:i:s");
+       		$nowday_starttime = strtotime(date("Y-m-d 00:00:00"));
+       		$nowday_endtime = strtotime(date("Y-m-d 23:59:59"));
+			$noworder = pdo_fetch("select * from " . tablename("ewei_shop_order") . " where createtime between :nowday_starttime and :nowday_endtime order by id desc limit 1 " , array( ":nowday_starttime" => $nowday_starttime, ":nowday_endtime" => $nowday_endtime));
+          	//var_dump($noworder,"select * from " . tablename("ewei_shop_order") . " where createtime between :nowday_starttime and :nowday_endtime order by id desc limit 1 " , array( ":nowday_starttime" => $nowday_starttime, ":nowday_endtime" => $nowday_endtime));die;
+			if(empty($noworder)){
+              
+				$ascnum = 1;
+			}else{
+     
+				$ascnum = $noworder['ascnum'] + 1;
+			}
+          	$asc = sprintf("%05d", $ascnum);
+          
+			$ordersn = m("common")->createNEW($asc,"order", "ordersn", "SH");
+
 		}
 		if( !empty($goods[0]["bargain_id"]) && p("bargain") ) 
 		{
@@ -2888,7 +2904,8 @@ class Create_EweiShopV2Page extends AppMobilePage
 		$order["parentid"] = 0;
 		$order["uniacid"] = $uniacid;
 		$order["openid"] = $openid;
-		$order["ordersn"] = $ordersn;
+		$order["ascnum"] = $ascnum;
+      	$order["ordersn"] = $ordersn;
 		$order["price"] = $totalprice;
 		$order["oldprice"] = $totalprice;
 		$order["grprice"] = $grprice;

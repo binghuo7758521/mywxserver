@@ -1348,9 +1348,13 @@ class Common_EweiShopV2Model
 		$acid = pdo_fetchcolumn("SELECT acid FROM " . tablename("account_wechats") . " WHERE `uniacid`=:uniacid LIMIT 1", array( ":uniacid" => $_W["uniacid"] ));
 		return WeAccount::create($acid);
 	}
+  
+
 	public function createNO($table, $field, $prefix) 
 	{
-		$billno = date("YmdHis") . random(6, true);
+		
+      	$billno = date("YmdHis") . random(6, true);//2018/12/2 13:58:36     SH 2018 12 02 13 58 36 760661  
+        
 		while( 1 ) 
 		{
 			$count = pdo_fetchcolumn("select count(*) from " . tablename("ewei_shop_" . $table) . " where " . $field . "=:billno limit 1", array( ":billno" => $billno ));
@@ -1358,10 +1362,29 @@ class Common_EweiShopV2Model
 			{
 				break;
 			}
-			$billno = date("YmdHis") . random(6, true);
+			$billno = date("YmdHis") .  random(6, true);
 		}
 		return $prefix . $billno;
 	}
+  
+	//订单号修改
+	public function createNEW($ascnum, $table, $field, $prefix) 
+	{
+		
+      	//$billno = date("Ymd") . $ascnum . random(5, true);
+      	$billno = date("Ymd") . $ascnum ;
+		while( 1 )
+		{
+			$count = pdo_fetchcolumn("select count(*) from " . tablename("ewei_shop_" . $table) . " where " . $field . "=:billno limit 1", array( ":billno" => $billno ));
+			if( $count <= 0 ) 
+			{
+				break;
+			}
+			$billno = date("Ymd") . $ascnum+1;
+		}
+		return $prefix . $billno;
+	}
+  
 	public function html_images($detail = "", $enforceQiniu = false) 
 	{
 		$detail = htmlspecialchars_decode($detail);

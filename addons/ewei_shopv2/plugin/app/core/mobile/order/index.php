@@ -1622,9 +1622,13 @@ class Index_EweiShopV2Page extends AppMobilePage
 		//var_dump(1111);die;
 		$uniacid = intval($_W["uniacid"]);
 
-		$order_goods=pdo_fetch("SELECT og.total,o.id FROM ".tablename("ewei_shop_order_goods")." as og"." LEFT JOIN".tablename("ewei_shop_order")."as o ON og.orderid=o.id" ." where og.uniacid=:uniacid and o.openid=:openid ORDER BY o.id DESC ", array( ":uniacid" => $uniacid, ":openid" => $_W["openid"] ));
-		
-		app_json(array( "order_goods" => $order_goods));
+		$order_goods=pdo_fetch("SELECT og.total,og.goodssn,o.id FROM ".tablename("ewei_shop_order_goods")." as og"." LEFT JOIN".tablename("ewei_shop_order")."as o ON og.orderid=o.id" ." where og.uniacid=:uniacid and o.openid=:openid ORDER BY o.id DESC ", array( ":uniacid" => $uniacid, ":openid" => $_W["openid"] ));
+		$whi =  $order_goods['goodssn'];
+      	$num =  substr($whi,0,strrpos($whi,'-'));
+      	$number = substr($num,strripos($num, '-')+1);
+      	$ototal = $order_goods['total'];
+      	$total = $ototal * $number;
+		app_json(array( "total" => $total));
 
 		
 	}
@@ -1652,7 +1656,7 @@ class Index_EweiShopV2Page extends AppMobilePage
 		$goodsid=$order_goods["goodsid"];
 		$title = pdo_fetch("SELECT title FROM ".tablename('ewei_shop_goods')." WHERE id = :gid LIMIT 1", array(':gid' => $goodsid));
 		
-		//照片大小
+		//照片大小  规格
       	$imgsize = $order_goods['optionname'];
       	
       	$sizes = substr($imgsize,strripos($imgsize, '+')+1);
@@ -1660,20 +1664,25 @@ class Index_EweiShopV2Page extends AppMobilePage
       
       	//Se-2:3-1-30
       	$whi =  $order_goods['goodssn'];
+      
       	$wi =  substr($whi,0,strpos($whi,':'));
-      	$width =  substr($wi,strripos($wi, '-')+1); //宽比
+      	$width = substr($wi,strripos($wi, '-')+1); //宽比
       
       	$hi =  substr($whi,strripos($whi, ':')+1);
       	$hight =  substr($hi,0,strpos($hi,'-')); //高比
-      
-      	//var_dump(1111,$hi,$hight);die;
+      	
+      	$num =  substr($whi,0,strrpos($whi,'-'));
+      	$number = substr($num,strripos($num, '-')+1);
+      	
+      	$px =  substr($whi,strripos($whi, '-')+1);
+      	//var_dump($whi,$num,$number,1111,$px);die;
 		//$size= pdo_fetch("SELECT size FROM ".tablename('ewei_shop_goods')." WHERE id = :gid LIMIT 1", array(':gid' => $goodsid));
 		//$goodssize=$size["size"];
 		//$wh= pdo_fetch("SELECT width , height FROM ".tablename('ewei_shop_goods_size')." WHERE size = :gsize LIMIT 1", array(':gsize' => $goodssize));
 
 		$orderid=$order_goods["id"];
 
-		app_json(array("nickname" => $nickname, "data" => $data, "ordersn" => $ordersn, "title" => $title , "orderid" => $orderid , "width" => $width, "hight" => $hight, "size" => $size));
+		app_json(array("nickname" => $nickname, "data" => $data, "ordersn" => $ordersn,"optionname" => $imgsize, "title" => $title , "orderid" => $orderid , "width" => $width, "hight" => $hight, "size" => $size, "number" => $number, "px" => $px));
 
 		
 	}
@@ -1683,8 +1692,8 @@ class Index_EweiShopV2Page extends AppMobilePage
 		global $_GPC;
 		$gid = intval($_GPC['goodsid']);
 
-		$isupload=pdo_fetch("SELECT isupload FROM ".tablename('ewei_shop_goods')." WHERE id = :gid LIMIT 1", array(':gid' => $gid));
-
+		$isupload=pdo_fetch("SELECT isupload, ednum, edmoney FROM ".tablename('ewei_shop_goods')." WHERE id = :gid LIMIT 1", array(':gid' => $gid));
+		
 		app_json(array( "isupload" => $isupload));
 
 		

@@ -561,9 +561,10 @@ class Single_EweiShopV2Page extends PluginWebPage
 					$receiver["PostCode"] = "000000";
 				}
 				$commodityOne = array( );
-				$goodsname = str_replace($replace_str, "", trim($_GPC["printarr"]["sendinfo"]));
-				$commodityOne["GoodsName"] = mb_substr($goodsname, 0, 15);
-				$commodityOne["GoodsName"] .= ".....更多请查看发货清单";
+				//$goodsname = str_replace($replace_str, "", trim($_GPC["printarr"]["sendinfo"]));
+				$goodsname = str_replace($replace_str, "", trim($_GPC["printarr"]["ordersn"]));
+				$commodityOne["GoodsName"] = mb_substr($goodsname, 0, 100);
+				$commodityOne["GoodsName"] .= ".";
 				$commodityOne["Goodsquantity"] = intval($_GPC["printarr"]["all_total"]);
 				$commodity = array( );
 				$commodity[] = $commodityOne;
