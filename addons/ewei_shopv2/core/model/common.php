@@ -1372,7 +1372,23 @@ class Common_EweiShopV2Model
 	{
 		
       	//$billno = date("Ymd") . $ascnum . random(5, true);
-      	$billno = date("Ymd") . $ascnum ;
+      	//
+      	//
+      	//$billno = date("Ymd") . $ascnum ;
+
+      	 
+        	pdo_update( "ims_ewei_shop_ivanwang_ordernumber "," ordernumber=0 ,orderdate=now()"," datediff(orderdate,now())<>0 ");
+ 
+        	pdo_update("ims_ewei_shop_ivanwang_ordernumber "," ordernumber=ordernumber+1 ","datediff(orderdate,now())=0 ");     
+       
+
+		$mynum = pdo_fetchcolumn("select  ordernumber  from ims_ewei_shop_ivanwang_ordernumber where datediff(orderdate,now())=0");
+        
+       $billno =date("Ymd"). sprintf("%05d", $mynum);
+
+       return $prefix . $billno;
+
+/*
 		while( 1 )
 		{
 			$count = pdo_fetchcolumn("select count(*) from " . tablename("ewei_shop_" . $table) . " where " . $field . "=:billno limit 1", array( ":billno" => $billno ));
@@ -1382,7 +1398,10 @@ class Common_EweiShopV2Model
 			}
 			$billno = date("Ymd") . $ascnum+1;
 		}
-		return $prefix . $billno;
+
+
+
+		return $prefix . $billno;*/
 	}
   
 	public function html_images($detail = "", $enforceQiniu = false) 
