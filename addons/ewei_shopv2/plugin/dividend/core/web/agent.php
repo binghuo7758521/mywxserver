@@ -238,7 +238,7 @@ class Agent_EweiShopV2Page extends DividendWebPage
                         foreach ($groupscounts3 as $values3) {
                             $sql = "select dm.*  from " . tablename("ewei_shop_member") . " dm " . " left join " . tablename("mc_mapping_fans") . "f on f.openid=dm.openid  and f.uniacid=" . $_W["uniacid"] . " where dm.uniacid = " . $_W["uniacid"] . " and dm.headsid = " . $values3['headsid'] . "  " . $condition . "   ORDER BY dm.createtime desc";
                         }
-				
+                
 
                         if (empty($_GPC["export"])) {
                             $sql .= " limit " . ($pindex - 1) * $psize . "," . $psize;
@@ -249,7 +249,7 @@ class Agent_EweiShopV2Page extends DividendWebPage
                 }
             }
             if ($member['agentheads'] == 2) {
-                /*		$sql = "select dm.*  from " . tablename("ewei_shop_member") . " dm " . " left join " . tablename("mc_mapping_fans") . "f on f.openid=dm.openid  and f.uniacid=" . $_W["uniacid"] . " where dm.uniacid = " . $_W["uniacid"] . " and dm.headsid = " . $headsid . "  " . $condition . "   ORDER BY dm.createtime desc";
+                /*      $sql = "select dm.*  from " . tablename("ewei_shop_member") . " dm " . " left join " . tablename("mc_mapping_fans") . "f on f.openid=dm.openid  and f.uniacid=" . $_W["uniacid"] . " where dm.uniacid = " . $_W["uniacid"] . " and dm.headsid = " . $headsid . "  " . $condition . "   ORDER BY dm.createtime desc";
 
                             if( empty($_GPC["export"]) )
                             {
@@ -362,23 +362,23 @@ class Agent_EweiShopV2Page extends DividendWebPage
         }
         $status = intval($_GPC["headsstatus"]);
         $members = pdo_fetchall("SELECT id,openid,agentid,nickname,realname,mobile,status,headsstatus,isheads FROM " . tablename("ewei_shop_member") . " WHERE id in( " . $id . " ) AND uniacid=" . $_W["uniacid"]);
-		
-		
-				$time = time();
-				foreach ($members as $member) {
-					if ($member["headsstatus"] === $status) {
-						continue;
-					}
-			if($member['isheads'] == 0){
-				
-				
-				echo 2;die;
-				/*echo "<script>alert('不满足审核条件');console.log(1);document.write('1');
-				window.location.href= '/web/index.php?c=site&a=entry&m=ewei_shopv2&do=web&r=dividend.agent';
-				</script>";
-				die;*/
-				
-				}
+        
+        
+                $time = time();
+                foreach ($members as $member) {
+                    if ($member["headsstatus"] === $status) {
+                        continue;
+                    }
+            if($member['isheads'] == 0){
+                
+                
+                echo 2;die;
+                /*echo "<script>alert('不满足审核条件');console.log(1);document.write('1');
+                window.location.href= '/web/index.php?c=site&a=entry&m=ewei_shopv2&do=web&r=dividend.agent';
+                </script>";
+                die;*/
+                
+                }
 
             if ($member['isheads'] == 1 && $status == 1) {
                 $this->model->sendMessage($member["openid"], array("nickname" => $member["nickname"], "headstime" => $time), TM_DIVIDEND_DOWNLINE_BECOME);
@@ -419,7 +419,7 @@ class Agent_EweiShopV2Page extends DividendWebPage
         // Array ( [0] => Array ( [id] => 2190 [openid] => oCU8WuJlWuBx-J90EvqRPu7UJnio [agentid] => 2189 [nickname] => 王守卫 [realname] => 张兴 [mobile] => 15963063660 [status] => 1 [headsstatus] => 0 [agentheads] => 0 ) )
         foreach ($members as $member) {
             //print_r($member);die;
-            /*	if( $member["headsid"] != 0)
+            /*  if( $member["headsid"] != 0)
                 {
                     //echo 2;
                     continue;
@@ -440,7 +440,7 @@ class Agent_EweiShopV2Page extends DividendWebPage
 
             } else {
                 //echo 1;
-                if ($member['headsid'] != 0) {
+                if ($member['headsid'] != 0 and $member['agentid'] != 0) {
                     $this->error('不满足升级为一级队长条件');
                 } else {
                     $this->model->sendMessage($member["openid"], array("nickname" => $member["nickname"], "headstime" => $time), TM_DIVIDEND_DOWNLINE_BECOME);

@@ -515,7 +515,10 @@
 										>
 
 
-										  {if ($row['agentheads']==1 || $row['agentheads']==2) && $row['headsstatus']==1 && $row['isheads']==1}已审核{elseif $row['isheads']==1 && $row['headsstatus']==0 && $row['agentheads']==0}可审核为二级队长{else}未审核{/if}</span>
+										 {if $row['agentheads']==1 && $row['headsstatus']==1 && $row['isheads']==1} 无需审核 {elseif $row['agentheads']==2 && $row['headsstatus']==1 && $row['isheads']==1}已审核{elseif $row['isheads']==1 && $row['headsstatus']==0 && $row['agentheads']==0}可审核为二级队长{else}未审核{/if}
+                                          
+                                          
+                                          </span>
 
 
 
@@ -795,8 +798,10 @@
 				    var agentheads = $(this).data('agentheads');
 					var headsid = $(this).data('headsid');				
 				   if(agentheads == 1){
-					   confirm("确定取消一级队长么");
-					    	var id = $(this).data('userid');
+					  var con =  confirm("确定取消一级队长么");
+					  
+					   		if(con == true){
+								var id = $(this).data('userid');
 							   var that=$(this);
 										$.ajax({
 										   type: "get",
@@ -808,6 +813,12 @@
 												 that.parent().parent().find(".dongtian").html(res.result.html2);
 										   }
 							})
+								}
+								else{
+									
+									return;
+									}
+					    	
 						 }
 						 else
 						 {
@@ -816,7 +827,10 @@
 									   alert("不满足成为一级队长条件");
 									   }
 									   else{
-										    confirm("确定提升为一级队长么");
+										    var con = confirm("确定提升为一级队长么");
+											if(con == true){
+											
+											
 											   var id = $(this).data('userid');
 											   var that=$(this);
 											$.ajax({
@@ -829,7 +843,10 @@
 													 that.parent().parent().find(".dongtian").html(res.result.html2);
 											   }
 								})
-						 }
+						 }else{
+							 return;
+							 }
+						} 
 					   }
   			 });
                 
