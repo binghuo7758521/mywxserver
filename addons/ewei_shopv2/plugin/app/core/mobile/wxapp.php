@@ -96,9 +96,10 @@ class Wxapp_EweiShopV2Page extends Page
 		{
 			app_error(AppError::$ParamsError);
 		}
-
-		//$wxopenid = "sns_wa_" .$openid;
+           
+		//$wxopenid = "sns_wa_" .$openid;//解决未更新 问题		 
 		$wxopenid = $openid;
+		$openid=str_replace("sns_wa_","",$openid);//解决不能充值余额问题		
 		$member = m("member")->getMember($wxopenid);
 		if( empty($member) ) 
 		{

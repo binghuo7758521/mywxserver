@@ -63,7 +63,7 @@ class Down_EweiShopV2Page extends Base_EweiShopV2Page
 				$ids = pdo_fetch("select id from " . tablename("ewei_shop_member") . " where openid = :openid and uniacid = :uniacid ", array(":openid" => $_W['openid'], ":uniacid" => $_W["uniacid"]));
 				$members = pdo_fetch("SELECT id,openid,agentid,nickname,realname,mobile,status,headsstatus,headsid FROM " . tablename("ewei_shop_member") . " WHERE id in( " . $id . " ) AND uniacid=" . $_W["uniacid"]);
 				// 指定为二级队长且为已申请，审核后成为二级队长
-				$result = pdo_update("ewei_shop_member", array("isheads" => 1), array("id" => $members["id"], "uniacid" => $_W["uniacid"]));
+				$result = pdo_update("ewei_shop_member", array("isheads" => 1,"agentheads"=>2), array("id" => $members["id"], "uniacid" => $_W["uniacid"]));
 				$initData = pdo_fetch("select * from " . tablename("ewei_shop_dividend_init") . " where headsid = :headsid and uniacid = :uniacid", array(":headsid" => $members["id"], ":uniacid" => $_W["uniacid"]));
 				if (empty($initData)) {
 					pdo_insert("ewei_shop_dividend_init", $heads_data);
