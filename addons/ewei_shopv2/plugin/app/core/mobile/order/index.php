@@ -1690,6 +1690,7 @@ class Index_EweiShopV2Page extends AppMobilePage
 	{
 		global $_W;
 		global $_GPC;
+		$uniacid = intval($_W["uniacid"]);
 		$gid = intval($_GPC['goodsid']);
 
 		$isupload=pdo_fetch("SELECT isupload, ednum, edmoney FROM ".tablename('ewei_shop_goods')." WHERE id = :gid LIMIT 1", array(':gid' => $gid));
@@ -1699,6 +1700,33 @@ class Index_EweiShopV2Page extends AppMobilePage
 		
 	}
 
-	
+	public function goodsoption() 
+	{
+		global $_W;
+		global $_GPC;
+		$uniacid = intval($_W["uniacid"]);
+		$gid = intval($_GPC['goodsoptionid']);
+
+		$goodsoption=pdo_fetch("SELECT goodssn FROM ".tablename('ewei_shop_goods_option')." WHERE id = :gid LIMIT 1", array(':gid' => $gid));
+		
+       //Se-2:3-1-30
+      	$whi =  $goodsoption['goodssn'];
+      
+      	$wi =  substr($whi,0,strpos($whi,':'));
+      	$width = substr($wi,strripos($wi, '-')+1); //宽比
+      
+      	$hi =  substr($whi,strripos($whi, ':')+1);
+      	$hight =  substr($hi,0,strpos($hi,'-')); //高比
+      	
+      	$num =  substr($whi,0,strrpos($whi,'-'));
+      	$number = substr($num,strripos($num, '-')+1);
+      	
+      	$px =  substr($whi,strripos($whi, '-')+1);
+       
+
+		app_json(array( "taocannum" => $number));
+
+		
+	}
 }
 ?>
