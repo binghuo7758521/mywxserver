@@ -1692,10 +1692,11 @@ class Index_EweiShopV2Page extends AppMobilePage
 		global $_GPC;
 		$uniacid = intval($_W["uniacid"]);
 		$gid = intval($_GPC['goodsid']);
+		$datas = date("Y-m-d H-i-s");
 
 		$isupload=pdo_fetch("SELECT isupload, ednum, edmoney FROM ".tablename('ewei_shop_goods')." WHERE id = :gid LIMIT 1", array(':gid' => $gid));
 		
-		app_json(array( "isupload" => $isupload));
+		app_json(array( "isupload" => $isupload,"datas"=>$datas));
 
 		
 	}
@@ -1707,7 +1708,13 @@ class Index_EweiShopV2Page extends AppMobilePage
 		$uniacid = intval($_W["uniacid"]);
 		$gid = intval($_GPC['goodsoptionid']);
 
-		$goodsoption=pdo_fetch("SELECT goodssn FROM ".tablename('ewei_shop_goods_option')." WHERE id = :gid LIMIT 1", array(':gid' => $gid));
+		$goodsoption=pdo_fetch("SELECT goodssn,title FROM ".tablename('ewei_shop_goods_option')." WHERE id = :gid LIMIT 1", array(':gid' => $gid));
+
+			//照片大小  规格
+      	$imgsize = $goodsoption['title'];
+      	
+      	$sizes = substr($imgsize,strripos($imgsize, '+')+1);
+      	$size = substr($sizes,0,strpos($sizes,'寸'));//照片尺寸
 		
        //Se-2:3-1-30
       	$whi =  $goodsoption['goodssn'];
@@ -1724,7 +1731,7 @@ class Index_EweiShopV2Page extends AppMobilePage
       	$px =  substr($whi,strripos($whi, '-')+1);
        
 
-		app_json(array( "taocannum" => $number));
+		app_json(array( "taocannum" => $number,"width"=>$width,"hight"=>$hight,"px"=>$px,"size"=>$size,"title"=>$title));
 
 		
 	}
