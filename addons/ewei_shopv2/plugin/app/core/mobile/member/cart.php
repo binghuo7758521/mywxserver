@@ -295,6 +295,21 @@ class Cart_EweiShopV2Page extends AppMobilePage
 		pdo_query($sql, array(':uniacid' => $_W['uniacid'], ':openid' => $_W['openid']));
 		app_json();
 	}
+
+public function remove_all() 
+	{
+		global $_W;
+		global $_GPC;
+		$ids = $_GPC["ids"];
+		
+		$sql = "update " . tablename("ewei_shop_member_cart") . " set deleted=1 where uniacid=:uniacid and openid=:openid ";
+		pdo_query($sql, array( ":uniacid" => $_W["uniacid"], ":openid" => $_W["openid"] ));
+		show_json();
+	}
+
+
+
+
 	public function tofavorite() 
 	{
 		global $_W;
